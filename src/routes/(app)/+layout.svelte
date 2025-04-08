@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { getToolServerConnections } from '$lib/apis/configs';
 	import { toast } from 'svelte-sonner';
 	import { onMount, tick, getContext } from 'svelte';
 	import { openDB, deleteDB } from 'idb';
@@ -81,6 +82,12 @@
 				return null;
 			});
 
+			// Add the log here:
+			console.log("User settings loaded:", {
+				userSettings,
+				toolServers: userSettings?.ui?.toolServers
+			});
+
 			if (userSettings) {
 				settings.set(userSettings.ui);
 			} else {
@@ -104,7 +111,19 @@
 
 			banners.set(await getBanners(localStorage.token));
 			tools.set(await getTools(localStorage.token));
-			toolServers.set(await getToolServersData($i18n, $settings?.toolServers ?? []));
+			console.log("Tools initialized:", await getTools(localStorage.token));
+
+			// Get tool server connections from config
+			const toolServerConnections = await getToolServerConnections(localStorage.token);
+			console.log("Tool server connections:", toolServerConnections);
+
+			// Update settings with tool server connections
+			const updatedSettings = { ...$settings, toolServers: toolServerConnections.TOOL_SERVER_CONNECTIONS };
+			settings.set(updatedSettings);
+
+			// Then set tool servers with the new settings
+			toolServers.set(await getToolServersData($i18n, updatedSettings.toolServers ?? []));
+			console.log("Tool servers initialized with config:", await getToolServersData($i18n, updatedSettings.toolServers ?? []));
 
 			document.addEventListener('keydown', async function (event) {
 				const isCtrlPressed = event.ctrlKey || event.metaKey; // metaKey is for Cmd key on Mac
